@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 設定 heminetwork 資料夾的絕對路徑
+HEMINETWORK_DIR="/root/heminetwork"
+
 # 檢查並安裝 jq
 function check_and_install_jq() {
     if ! command -v jq &> /dev/null; then
@@ -13,6 +16,17 @@ function check_and_install_jq() {
     else
         echo "jq 已安裝。"
     fi
+}
+
+# 檢查並切換到 heminetwork 目錄
+function check_and_cd_heminetwork() {
+    if [ ! -d "$HEMINETWORK_DIR" ]; then
+        echo "解壓目錄不存在，請確認目錄名稱。"
+        return 1
+    fi
+
+    cd "$HEMINETWORK_DIR" || { echo "切換目錄失敗。"; return 1; }
+    return 0
 }
 
 # 安裝 HEMI MINER
@@ -33,11 +47,11 @@ function install_hemi_miner() {
     if [ "$ARCH" == "x86_64" ]; then
         wget -q --show-progress -O heminetwork.tar.gz "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz"
         tar -xzf heminetwork.tar.gz
-        mv heminetwork_${LATEST_VERSION}_linux_amd64 heminetwork
+        mv heminetwork_${LATEST_VERSION}_linux_amd64 "$HEMINETWORK_DIR"
     elif [ "$ARCH" == "arm64" ]; then
         wget -q --show-progress -O heminetwork.tar.gz "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz"
         tar -xzf heminetwork.tar.gz
-        mv heminetwork_${LATEST_VERSION}_linux_arm64 heminetwork
+        mv heminetwork_${LATEST_VERSION}_linux_arm64 "$HEMINETWORK_DIR"
     else
         echo "不支持的架構: $ARCH"
         exit 1
@@ -50,12 +64,7 @@ function install_hemi_miner() {
 
 # 生成 Public Key
 function generate_public_key() {
-    if [ ! -d "heminetwork" ]; then
-        echo "解壓目錄不存在，請確認目錄名稱。"
-        exit 1
-    fi
-
-    cd "heminetwork" || { echo "切換目錄失敗。"; exit 1; }
+    check_and_cd_heminetwork || exit 1
 
     if [ -f ~/popm-address.json ]; then
         echo "popm-address.json 已存在，跳過生成 Public Key 步驟。"
@@ -80,12 +89,7 @@ function show_public_key() {
 
 # 運行挖礦
 function start_mining() {
-    if [ ! -d "heminetwork" ]; then
-        echo "解壓目錄不存在，請確認目錄名稱。"
-        exit 1
-    fi
-
-    cd "heminetwork" || { echo "切換目錄失敗。"; exit 1; }
+    check_and_cd_heminetwork || exit 1
 
     if [ -f ~/popm-address.json ]; then
         POPM_BTC_PRIVKEY=$(jq -r '.private_key' ~/popm-address.json)
@@ -132,7 +136,7 @@ function stop_mining() {
 
 # 刪除所有有關文件
 function delete_files() {
-    rm -r "heminetwork"
+    rm -r "$HEMINETWORK_DIR"
     rm "heminetwork.tar.gz"
     echo "資料夾 heminetwork 和 heminetwork.tar.gz 已刪除，保留 /root/popm-address.json。"
     pause
