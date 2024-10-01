@@ -1,12 +1,31 @@
 #!/bin/bash
 
+# 激活虛擬環境
+source $HOME/vana-dlp-chatgpt/myenv/bin/activate
+source $HOME/.bash_profile
+
 # 設置絕對路徑
 VANA_CLI_PATH="/root/vana-dlp-chatgpt/vanacli"
 VANA_DLP_CHATGPT_PATH="/root/vana-dlp-chatgpt"
 LOG_DIR="/root/vanalog"
+CONFIG_FILE="/root/vanalog/config.txt"
 
 # 創建日誌資料夾
 mkdir -p "$LOG_DIR"
+# 檢查 config.txt 是否存在，如果不存在則創建並寫入內容
+if [ ! -f "$LOG_DIR/config.txt" ]; then
+    cat <<EOL > "$LOG_DIR/config.txt"
+DEPLOYER_PRIVATE_KEY=$A
+COLDADDRESS=$B
+HOTADDRESS=$C
+OPENAI_API_KEY=$D
+DLP_MOKSHA_CONTRACT=$E
+DLP_TOKEN_MOKSHA_CONTRACT=$F
+PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=$G
+EOL
+else
+    echo "config.txt 已存在，跳過創建。"
+fi
 
 # 選單函數
 show_menu() {
@@ -26,56 +45,59 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# 安裝需要文件的函數
 install_files() {
     sudo apt update
     sudo apt upgrade -y
     sudo apt install -y curl wget jq make gcc nano git software-properties-common
 
-    # 安装 nvm
-    if [ ! -d "$HOME/.nvm" ]; then
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-    fi
-
-    # 加载 nvm
-    export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-    # 安装 Node.js 和 npm
-    nvm install 18
-    nvm use 18
-
+    # 安裝 Node.js 和 npm
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+    echo 'export NVM_DIR="$HOME/.nvm"' >> $HOME/.bash_profile
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm' >> $HOME/.bash_profile
+    echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> $HOME/.bash_profile
+    source $HOME/.bash_profile
+    nvm install --lts
     node -v
     npm -v
 
-    # 安装 Python
+    # 安裝 Yarn
+    npm install -g yarn
+
+    # 安裝 Python
     sudo add-apt-repository ppa:deadsnakes/ppa -y
     sudo apt update
     sudo apt install -y python3.11 python3.11-venv python3.11-dev python3-pip
-
     curl -sSL https://install.python-poetry.org | python3 -
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> $HOME/.bashrc
-    source $HOME/.bashrc
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> $HOME/.bash_profile
+    source $HOME/.bash_profile
     python3.11 --version
 
-    # 安装 Yarn
-    npm install -g yarn
-
-    # Clone GPT 代码
+    # Clone GPT
     git clone https://github.com/vana-com/vana-dlp-chatgpt.git
     cd $HOME/vana-dlp-chatgpt/
 
-    # 配置环境
-    python3.11 -m venv vana_gpt_env
-    source vana_gpt_env/bin/activate
+    # 配置環境
+    python3.11 -m venv myenv
+    source myenv/bin/activate
     pip install --upgrade pip
     pip install poetry
     pip install python-dotenv
     poetry install
     pip install vana
 
+    # 在虛擬環境中安裝 nvm, Node.js, npm 和 Yarn
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+    export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm install 18
+    nvm use 18
+    npm install -g yarn
+
+    # 將虛擬環境激活命令添加到 .bashrc
+    echo 'source $HOME/vana-dlp-chatgpt/myenv/bin/activate' >> $HOME/.bashrc
     echo "部署完成..."
 }
+
 
 # 創建錢包的函數
 create_wallet() {
@@ -85,81 +107,118 @@ create_wallet() {
     echo "錢包創建完成，詳情請查看 $LOG_DIR/wallet.log"
 }
 
-# 導出冷錢包私鑰的函數，並將輸出重定向到coldkey.log
+# 導出冷錢包私鑰的函數
 export_coldkey() {
     echo "導出冷錢包私鑰..."
     cd $HOME/vana-dlp-chatgpt/
-    vanacli wallet export_private_key 2>&1 | tee "$LOG_DIR/coldkey.log" || { echo "導出冷錢包私鑰失敗"; exit 1; }
-    echo "冷錢包私鑰已導出到 $LOG_DIR/coldkey.log"
+    vanacli wallet export_private_key 2>&1 | tee "$LOG_DIR/coldkey.log"
+    read -p "請輸入冷錢包私鑰: " A
+    echo "私鑰已成功輸入並賦值給變數 \$A: $A"
+    read -p "請輸入冷錢包地址: " B
+    echo "DEPLOYER_PRIVATE_KEY=$A" > "$LOG_DIR/config.txt"
+    echo "COLDADDRESS=$B" >> "$LOG_DIR/config.txt"
+    echo "更新後的 config.txt 文件內容:"
+    cat "$LOG_DIR/config.txt"
 }
 
-# 導出熱錢包私鑰的函數，並將輸出重定向到hotkey.log
+# 導出熱錢包私鑰的函數
 export_hotkey() {
     echo "導出熱錢包私鑰..."
     cd $HOME/vana-dlp-chatgpt/
     vanacli wallet export_private_key 2>&1 | tee "$LOG_DIR/hotkey.log" || { echo "導出熱錢包私鑰失敗"; exit 1; }
     echo "熱錢包私鑰已導出到 $LOG_DIR/hotkey.log"
+    read -p "請輸入熱錢包地址: " C
+    echo "HOLDADDRESS=$C" >> "$LOG_DIR/config.txt"
+    echo "更新後的 config.txt 文件內容:"
+    cat "$LOG_DIR/config.txt"
 }
 
-# 設置智能合約環境的函數
-setup_smart_contracts() {
-    echo "設置智能合約環境..."
+# 部署智能合約的函數
+deploy_smart_contracts() {
     cd $HOME/vana-dlp-chatgpt/
-    ./keygen.sh 2>&1 | tee "$LOG_DIR/keygen.log" || { echo "設置智能合約環境失敗"; exit 1; }
+    ./keygen.sh
+
+    # 返回 $HOME 目錄
     cd $HOME
-    rm -rf vana-dlp-smart-contracts
-    git clone https://github.com/Josephtran102/vana-dlp-smart-contracts 2>&1 | tee "$LOG_DIR/git_clone.log" || { echo "克隆智能合約儲存庫失敗"; exit 1; }
-    cd vana-dlp-smart-contracts
-    yarn install 2>&1 | tee "$LOG_DIR/yarn_install.log" || { echo "安裝智能合約依賴失敗"; exit 1; }
-    cp .env.example .env
 
-    # 要求用戶輸入並寫入 .env 文件
-    read -p "請輸入 DEPLOYER_PRIVATE_KEY(在coldkey.log): " DEPLOYER_PRIVATE_KEY
-    read -p "請輸入 OWNER_ADDRESS(導入小狐狸coldkey的地址): " OWNER_ADDRESS
-    read -p "請輸入 DLP_NAME自定義: " DLP_NAME
-    read -p "請輸入 DLP_TOKEN_NAME自定義: " DLP_TOKEN_NAME
-    read -p "請輸入 DLP_TOKEN_SYMBOL自定義: " DLP_TOKEN_SYMBOL
+# 確保 public_key_base64.asc 文件存在並且可以讀取
+if [ -f "$HOME/vana-dlp-chatgpt/public_key_base64.asc" ]; then
+    G=$(cat $HOME/vana-dlp-chatgpt/public_key_base64.asc)
+    echo "讀取到的內容: $G"
 
-    sed -i "s/^DEPLOYER_PRIVATE_KEY=.*/DEPLOYER_PRIVATE_KEY=$DEPLOYER_PRIVATE_KEY/" .env
-    sed -i "s/^OWNER_ADDRESS=.*/OWNER_ADDRESS=$OWNER_ADDRESS/" .env
-    sed -i "s/^DLP_NAME=.*/DLP_NAME=$DLP_NAME/" .env
-    sed -i "s/^DLP_TOKEN_NAME=.*/DLP_TOKEN_NAME=$DLP_TOKEN_NAME/" .env
-    sed -i "s/^DLP_TOKEN_SYMBOL=.*/DLP_TOKEN_SYMBOL=$DLP_TOKEN_SYMBOL/" .env
+    # 更新 config.txt 中的 PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64
+    if grep -q "^PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=" "$CONFIG_FILE"; then
+        # 如果條目已存在，則更新它
+        awk -v new_value="$G" '/^PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=/ {$0="PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64="new_value} 1' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    else
+        # 如果條目不存在，則添加它
+        echo "PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=$G" >> "$CONFIG_FILE"
+    fi
 
+    echo "更新成功: PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=$G"
+else
+    echo "public_key_base64.asc 文件不存在或無法讀取"
+    exit 1
+fi
+
+    # 从 config.txt 文件中提取 DEPLOYER_PRIVATE_KEY 和 OWNER_ADDRESS
+    A=$(grep 'DEPLOYER_PRIVATE_KEY=' $LOG_DIR/config.txt | cut -d '=' -f2)
+    B=$(grep 'COLDADDRESS=' $LOG_DIR/config.txt | cut -d '=' -f2)
+    # 克隆 vana-dlp-smart-contracts 仓库
+    git clone https://github.com/Josephtran102/vana-dlp-smart-contracts
+    # 进入 vana-dlp-smart-contracts 目录
+    cd $HOME/vana-dlp-smart-contracts
+    npm install -g yarn
+    yarn --version
+    yarn install
+    # 创建 .env 文件并写入内容
+    cat <<EOL > .env
+# Update with your own private key / address
+DEPLOYER_PRIVATE_KEY=$A
+OWNER_ADDRESS=$B
+SATORI_RPC_URL=http://rpc.satori.vana.org
+SATORI_API_URL=https://api.satori.vanascan.io/api
+SATORI_BROWSER_URL=https://satori.vanascan.io
+MOKSHA_RPC_URL=https://rpc.moksha.vana.org
+MOKSHA_API_URL=https://rpc.moksha.vana.org/api
+MOKSHA_BROWSER_URL=https://moksha.vanascan.io
+# used for creating the contracts
+DLP_NAME=TEST
+DLP_TOKEN_NAME=TEST
+DLP_TOKEN_SYMBOL=TEST
+# used for upgrading the DLP contract
+DLP_CONTRACT_ADDRESS=0x00etc
+EOL
     echo "運行智能合約部署..."
     npx hardhat deploy --network moksha --tags DLPDeploy 2>&1 | tee "$LOG_DIR/contract.log" || { echo "智能合約部署失敗"; exit 1; }
-
-    # 自建 .env 文件
-    cat <<EOL > "$VANA_DLP_CHATGPT_PATH/.env"
+    # 手動輸入合約地址
+    read -p "請輸入 DataLiquidityPoolToken 部署地址: " E
+    read -p "請輸入 DataLiquidityPool 'TEST' 部署地址: " F
+    # 更新 config.txt 文件
+    echo "DLP_MOKSHA_CONTRACT=$E" >> "$LOG_DIR/config.txt"
+    echo "DLP_TOKEN_MOKSHA_CONTRACT=$F" >> "$LOG_DIR/config.txt"
+    # 顯示更新後的 config.txt 文件內容
+    echo "更新後的 config.txt 文件內容:"
+    cat "$LOG_DIR/config.txt"
+    cd $HOME/vana-dlp-chatgpt
+    # 创建 .env 文件并写入内容
+    cat <<EOL > .env
 # The network to use, currently Vana Moksha testnet
 OD_CHAIN_NETWORK=moksha
 OD_CHAIN_NETWORK_ENDPOINT=https://rpc.moksha.vana.org
 
 # Optional: OpenAI API key for additional data quality check
-OPENAI_API_KEY="要求輸入"
+OPENAI_API_KEY=$(read -p "請輸入 OpenAI API key: " OPENAI_API_KEY && echo $OPENAI_API_KEY)
 
 # Optional: Your own DLP smart contract address once deployed to the network, useful for local testing
-DLP_MOKSHA_CONTRACT=要求輸入
+DLP_MOKSHA_CONTRACT=$(grep 'DLP_TOKEN_MOKSHA_CONTRACT=' $LOG_DIR/config.txt | cut -d '=' -f2)
 
 # Optional: Your own DLP token contract address once deployed to the network, useful for local testing
-DLP_TOKEN_MOKSHA_CONTRACT=要求輸入
+DLP_TOKEN_MOKSHA_CONTRACT=$(grep 'DLP_MOKSHA_CONTRACT=' $LOG_DIR/config.txt | cut -d '=' -f2)
 
 # The private key for the DLP, follow "Generate validator encryption keys" section in the README
-PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64="要求輸入"
+PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=$(grep 'G=' $LOG_DIR/config.txt | cut -d '=' -f2)
 EOL
-
-    # 要求用戶輸入並更新 .env 文件
-    read -p "請輸入 OPENAI_API_KEY: " OPENAI_API_KEY
-    read -p "請輸入 DLP_MOKSHA_CONTRACT: " DLP_MOKSHA_CONTRACT
-    read -p "請輸入 DLP_TOKEN_MOKSHA_CONTRACT: " DLP_TOKEN_MOKSHA_CONTRACT
-    read -p "請輸入 PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64: " PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64
-
-    sed -i "s/^OPENAI_API_KEY=.*/OPENAI_API_KEY=\"$OPENAI_API_KEY\"/" "$VANA_DLP_CHATGPT_PATH/.env"
-    sed -i "s/^DLP_MOKSHA_CONTRACT=.*/DLP_MOKSHA_CONTRACT=$DLP_MOKSHA_CONTRACT/" "$VANA_DLP_CHATGPT_PATH/.env"
-    sed -i "s/^DLP_TOKEN_MOKSHA_CONTRACT=.*/DLP_TOKEN_MOKSHA_CONTRACT=$DLP_TOKEN_MOKSHA_CONTRACT/" "$VANA_DLP_CHATGPT_PATH/.env"
-    sed -i "s/^PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=.*/PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64=\"$PRIVATE_FILE_ENCRYPTION_PUBLIC_KEY_BASE64\"/" "$VANA_DLP_CHATGPT_PATH/.env"
-
-    echo ".env 文件已更新！"
 }
 
 # 設置驗證器的函數
@@ -168,7 +227,8 @@ setup_validator() {
     cd ~
     cd vana-dlp-chatgpt
     ./vanacli dlp register_validator --stake_amount 10 || { echo "註冊驗證器失敗"; exit 1; }
-    read -p "請輸入驗證器地址: " VALIDATOR_ADDRESS
+    # 從 config.txt 提取驗證器地址
+    VALIDATOR_ADDRESS=$(grep 'HOLDADDRESS=' $LOG_DIR/config.txt | cut -d '=' -f2)
     ./vanacli dlp approve_validator --validator_address="$VALIDATOR_ADDRESS" || { echo "批准驗證器失敗"; exit 1; }
     poetry run python -m chatgpt.nodes.validator || { echo "運行驗證器失敗"; exit 1; }
     echo "驗證器設置完成！"
@@ -227,7 +287,7 @@ while true; do
             export_hotkey
             ;;
         5)
-            setup_smart_contracts
+            deploy_smart_contracts
             ;;
         6)
             setup_validator
