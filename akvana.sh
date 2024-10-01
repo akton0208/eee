@@ -37,7 +37,9 @@ show_menu() {
     echo "6. 設置驗證器,如運行成功就CTRL+C關掉用步驟7後台運行"
     echo "7. 設置驗證器服務"
     echo "8. 查看驗證器日誌"
-    echo "9. 退出"
+    echo "9. 停上第7步的運行狀態"
+    echo "10. 刪除所有文件(只保留vanalog)"
+    echo "11. 退出"
 }
 
 # 檢查命令是否存在的函數
@@ -237,7 +239,7 @@ setup_validator() {
 # 設置驗證器服務的函數
 setup_validator_service() {
     echo "設置驗證器服務..."
-    sudo tee /etc/systemd/system/vana.service <<EOF
+sudo tee /etc/systemd/system/vana.service << EOF
 [Unit]
 Description=Vana Validator Service
 After=network.target
@@ -246,7 +248,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/root/vana-dlp-chatgpt
-ExecStart=/root/.local/bin/poetry run python -m chatgpt.nodes.validator
+ExecStart=/bin/bash -c 'source /root/vana-dlp-chatgpt/myenv/bin/activate && /root/.local/bin/poetry run python -m chatgpt.nodes.validator'
 Restart=on-failure
 RestartSec=10
 Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin:/root/vana-dlp-chatgpt/myenv/bin
@@ -267,6 +269,25 @@ EOF
 view_validator_logs() {
     echo "查看驗證器日誌..."
     sudo journalctl -u vana.service -f
+}
+
+# 停止VANA及刪除服務的函數
+stop_and_remove_service() {
+    echo "停止VANA及刪除服務..."
+    sudo systemctl stop vana.service
+    sudo systemctl disable vana.service
+    sudo rm /etc/systemd/system/vana.service
+    sudo systemctl daemon-reload
+    echo "VANA服務已停止並刪除！"
+}
+
+# 刪除所有文件的函數
+delete_all_files() {
+    echo "刪除所有文件..."
+    rm -r ~/.vana
+    rm -r ~/vana-dlp-smart-contracts
+    rm -r ~/vana-dlp-chatgpt
+    echo "所有文件已刪除！"
 }
 
 # 主程序
@@ -299,6 +320,12 @@ while true; do
             view_validator_logs
             ;;
         9)
+            stop_and_remove_service
+            ;;
+        10)
+            delete_all_files
+            ;;
+        11)
             echo "退出"
             break
             ;;
