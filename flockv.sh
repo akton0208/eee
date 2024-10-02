@@ -38,4 +38,4 @@ bash start.sh \
 --task_id 12 \
 --validation_args_file validation_config.json.example \
 --auto_clean_cache False \
---lora_only False' &> output.log &
+--lora_only False' &> /root/output.log &
