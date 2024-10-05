@@ -34,4 +34,4 @@ pip install -r testnet-training-node-quickstart/requirements.txt
 cd testnet-training-node-quickstart
 
 # Run the specified command in the background using tmux
-tmux new-session -d -s flock "TASK_ID=12 FLOCK_API_KEY="XZPOOFV8AQ9EIHDH5T2LS4MMJZ03C8NX" HF_TOKEN="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" CUDA_VISIBLE_DEVICES=0 HF_USERNAME="Akchacha" python full_automation.py --auto_clean_cache False &> /root/output.log"
+tmux new-session -d -s flock "TASK_ID=13 FLOCK_API_KEY="XZPOOFV8AQ9EIHDH5T2LS4MMJZ03C8NX" HF_TOKEN="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" CUDA_VISIBLE_DEVICES=0 HF_USERNAME="Akchacha" python full_automation.py --auto_clean_cache False &> /root/output.log"
