@@ -19,7 +19,7 @@ $HOME/miniconda/bin/conda init
 eval "$($HOME/miniconda/bin/conda shell.bash hook)"
 
 # Clone the specified GitHub repository
-git clone https://github.com/FLock-io/testnet-training-node-quickstart.git
+git clone https://github.com/akton0208/testnet-training-node-quickstart.git
 
 # Create a new Conda environment with Python 3.10
 conda create -n training-node python==3.10
