@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# 檢查是否提供了地址參數
-if [ -z "$1" ]; then
-    echo "請提供一個地址參數，例如：./moz.sh 0x4890d518Fea7BD57F0Cca70b9c381b1ef733189c"
-    exit 1
-fi
+# 默認地址
+DEFAULT_ADDRESS="0x4890d518Fea7BD57F0Cca70b9c381b1ef733189c"
 
-ADDRESS=$1
+# 使用提供的地址參數，否則使用默認地址
+ADDRESS=${1:-$DEFAULT_ADDRESS}
 
 # Function to display the menu
 show_menu() {
