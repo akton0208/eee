@@ -1,5 +1,8 @@
 #!/bin/bash
 
+apt update
+apt install tmux curl wget -y
+
 echo "Showing AK logo..."
 wget -O loader.sh https://raw.githubusercontent.com/DiscoverMyself/Ramanode-Guides/main/loader.sh && chmod +x loader.sh && ./loader.sh
 curl -s https://raw.githubusercontent.com/akton0208/node/main/ak.sh | bash
@@ -24,7 +27,7 @@ show_menu() {
 one_click_run() {
     echo "1) 更新並安裝 tmux"
     apt update
-    apt install tmux -y
+    apt install tmux curl wget -y
 
     echo "1) 下載並解壓縮 moz_prover"
     wget https://github.com/6block/zkwork_moz_prover/releases/download/v1.0.0/moz_prover_cuda.tar.gz
