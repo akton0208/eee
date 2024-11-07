@@ -22,11 +22,12 @@ one_click_run() {
     apt install tmux curl wget -y
 
     echo "1) 下載並解壓縮 moz_prover"
+    cd ~
     wget -O moz_prover_cuda.tar.gz https://github.com/6block/zkwork_moz_prover/releases/download/v1.0.0/moz_prover_cuda.tar.gz
-    tar -zvxf moz_prover_cuda.tar.gz && cd moz_prover
+    tar -zvxf moz_prover_cuda.tar.gz
 
     echo "1) 執行 moz_prover"
-    tmux new-session -d -s moz "./moz_prover --lumozpool moz.asia.zk.work:10010 --mozaddress $ADDRESS &> /root/moz.log"
+    tmux new-session -d -s moz "/moz_prover/moz_prover --lumozpool moz.asia.zk.work:10010 --mozaddress $ADDRESS &> /root/moz.log"
 }
 
 # Function to display the contents of moz.log
@@ -38,7 +39,7 @@ show_moz_log() {
 stop_moz_tmux() {
     tmux kill-session -t moz
     echo "tmux 的 moz 會話已停止"
-    cd
+    cd ~
     rm moz_prover_cuda.tar.*
     rm -r moz_prover
 }
