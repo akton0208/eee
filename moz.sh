@@ -30,7 +30,7 @@ run_download() {
 
 # Function to run miner
 run_miner() {
-    tmux new-session -d -s moz "/moz_prover/moz_prover --lumozpool moz.asia.zk.work:10010 --mozaddress $ADDRESS &> /root/moz.log"
+    tmux new-session -d -s moz "/root/moz_prover/moz_prover --lumozpool moz.asia.zk.work:10010 --mozaddress $ADDRESS &> /root/moz.log"
 }
 
 # Function to display the contents of moz.log
