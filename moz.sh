@@ -1,13 +1,5 @@
 #!/bin/bash
 
-apt update
-apt install tmux curl wget -y
-
-echo "Showing AK logo..."
-wget -O loader.sh https://raw.githubusercontent.com/DiscoverMyself/Ramanode-Guides/main/loader.sh && chmod +x loader.sh && ./loader.sh
-curl -s https://raw.githubusercontent.com/akton0208/node/main/ak.sh | bash
-sleep 2
-
 # 默認地址
 DEFAULT_ADDRESS="0x4890d518Fea7BD57F0Cca70b9c381b1ef733189c"
 
@@ -19,7 +11,7 @@ show_menu() {
     echo "選擇一個選項:"
     echo "1) 一鍵運行"
     echo "2) 顯示 moz.log 的內容"
-    echo "3) 停止 tmux 的 moz 會話"
+    echo "3) 停止 tmux 的 moz 會話 及刪除檔案"
     echo "4) 退出"
 }
 
@@ -30,7 +22,7 @@ one_click_run() {
     apt install tmux curl wget -y
 
     echo "1) 下載並解壓縮 moz_prover"
-    wget https://github.com/6block/zkwork_moz_prover/releases/download/v1.0.0/moz_prover_cuda.tar.gz
+    wget -O moz_prover_cuda.tar.gz https://github.com/6block/zkwork_moz_prover/releases/download/v1.0.0/moz_prover_cuda.tar.gz
     tar -zvxf moz_prover_cuda.tar.gz && cd moz_prover
 
     echo "1) 執行 moz_prover"
@@ -46,6 +38,9 @@ show_moz_log() {
 stop_moz_tmux() {
     tmux kill-session -t moz
     echo "tmux 的 moz 會話已停止"
+    cd
+    rm moz_prover_cuda.tar.*
+    rm -r moz_prover
 }
 
 # Main script logic
