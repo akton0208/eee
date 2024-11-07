@@ -9,14 +9,15 @@ ADDRESS=${1:-$DEFAULT_ADDRESS}
 # Function to display the menu
 show_menu() {
     echo "選擇一個選項:"
-    echo "1) 一鍵運行"
-    echo "2) 顯示 moz.log 的內容"
-    echo "3) 停止 tmux 的 moz 會話 及刪除檔案"
-    echo "4) 退出"
+    echo "1) 下載"
+    echo "2) 執行"
+    echo "3) 顯示 moz.log 的內容"
+    echo "4) 停止 tmux 的 moz 會話 及刪除檔案"
+    echo "5) 退出"
 }
 
-# Function to update and install tmux, download and extract moz_prover, and run moz_prover
-one_click_run() {
+# Function to update and install tmux, download and extract moz_prover
+run_download() {
     echo "1) 更新並安裝 tmux"
     apt update
     apt install tmux curl wget -y
@@ -25,8 +26,10 @@ one_click_run() {
     cd ~
     wget -O moz_prover_cuda.tar.gz https://github.com/6block/zkwork_moz_prover/releases/download/v1.0.0/moz_prover_cuda.tar.gz
     tar -zvxf moz_prover_cuda.tar.gz
+}
 
-    echo "1) 執行 moz_prover"
+# Function to run miner
+run_miner() {
     tmux new-session -d -s moz "/moz_prover/moz_prover --lumozpool moz.asia.zk.work:10010 --mozaddress $ADDRESS &> /root/moz.log"
 }
 
@@ -49,10 +52,11 @@ while true; do
     show_menu
     read -p "輸入選項 [1-4]: " choice
     case $choice in
-        1) one_click_run ;;
-        2) show_moz_log ;;
-        3) stop_moz_tmux ;;
-        4) echo "退出"; exit 0 ;;
+        1) run_download ;;
+        2) run_miner ;;
+        3) show_moz_log ;;
+        4) stop_moz_tmux ;;
+        5) echo "退出"; exit 0 ;;
         *) echo "無效選項，請重新輸入";;
     esac
 done
