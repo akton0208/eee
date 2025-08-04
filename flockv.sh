@@ -34,4 +34,4 @@ pip install -r llm-loss-validator/requirements.txt
 cd llm-loss-validator/src
 
 # Run the specified command in the background using tmux
-tmux new-session -d -s flock "CUDA_VISIBLE_DEVICES=0 TIME_SLEEP=180 bash start.sh --hf_token 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 --flock_api_key IH2J52AQS55E2T5EYALILJFIMIEB6WLE --task_id 1 --validation_args_file validation_config.json.example --auto_clean_cache False --lora_only False &> /root/flock.log"
+tmux new-session -d -s flock "CUDA_VISIBLE_DEVICES=0 TIME_SLEEP=180 bash start.sh --hf_token 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 --flock_api_key IH2J52AQS55E2T5EYALILJFIMIEB6WLE --task_id 13 --validation_args_file validation_config.json.example --auto_clean_cache False --lora_only False &> /root/flock.log"
